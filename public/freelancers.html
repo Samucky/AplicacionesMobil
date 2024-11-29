@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeWork - Freelancers</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="#" class="text-2xl font-semibold text-blue-600">FreeWork</a>
+            <div class="flex space-x-4">
+                <a href="home.html" class="text-gray-600 hover:text-blue-600 transition-colors">Inicio</a>
+                <a href="#" class="text-gray-600 hover:text-blue-600 transition-colors">Configuraciones</a>
+                <a href="freelancers.html" class="text-gray-600 hover:text-blue-600 transition-colors">Freelancers disponibles</a>
+                <a href="Message.html" class="text-gray-600 hover:text-blue-600 transition-colors">Mensajes</a>
+                <a href="newproyect.html" class="text-gray-600 hover:text-blue-600 transition-colors">Crear proyecto</a>
+            </div>
+            <div>
+                <button class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main class="container mx-auto px-4 py-8">
+        <section class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">Lista de Freelancers</h1>
+        </section>
+
+        <!-- Contenedor Dinámico para los Freelancers -->
+        <section id="freelancer-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></section>
+
+        <!-- Paginación -->
+        <div id="pagination" class="flex justify-center items-center space-x-2 mt-6">
+            <button id="prev-page" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition" disabled>
+                Anterior
+            </button>
+            <span id="current-page" class="text-gray-700 font-medium">1</span>
+            <button id="next-page" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                Siguiente
+            </button>
+        </div>
+    </main>
+
+    <!-- Modal para ofertar contrato -->
+<!-- Modal para ofertar contrato -->
+<div id="contract-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg w-1/2">
+        <h2 class="text-2xl font-bold mb-4">Ofertar Contrato</h2>
+        <form id="contract-form">
+            <!-- Seleccionar Proyecto -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-medium mb-2">Proyecto</label>
+                <select id="project-name" class="w-full p-2 border rounded-lg">
+                    <!-- Opciones se agregarán dinámicamente desde el backend -->
+                </select>
+                <input type="hidden" id="project-id">
+            </div>
+            
+            <!-- Fecha de Inicio -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-medium mb-2">Fecha de Inicio</label>
+                <input type="date" id="start-date" class="w-full p-2 border rounded-lg">
+            </div>
+            
+            <!-- Fecha de Fin -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-medium mb-2">Fecha de Fin</label>
+                <input type="date" id="end-date" class="w-full p-2 border rounded-lg">
+            </div>
+
+            <!-- Monto -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-medium mb-2">Monto</label>
+                <input type="number" id="amount" class="w-full p-2 border rounded-lg">
+            </div>
+
+            <!-- Descripción -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-medium mb-2">Descripción</label>
+                <textarea id="description" class="w-full p-2 border rounded-lg"></textarea>
+            </div>
+
+            <!-- Estado -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-medium mb-2">Estado</label>
+                <select id="status" class="w-full p-2 border rounded-lg">
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Aceptado">Aceptado</option>
+                    <option value="Rechazado">Rechazado</option>
+                    <option value="Terminado">Terminado</option>
+                </select>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex justify-end space-x-4">
+                <button type="button" id="close-modal" class="px-4 py-2 bg-gray-400 text-white rounded-lg">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Enviar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const userId = localStorage.getItem("userId");
+        const apiUrlFreelancers = "https://apifreework.onrender.com/api/freelancers";
+         // URL para obtener los proyectos
+        const itemsPerPage = 13;
+
+        const modal = document.getElementById("contract-modal");
+        const closeModal = document.getElementById("close-modal");
+        const form = document.getElementById("contract-form");
+
+        // Cargar datos desde API o localStorage para freelancers
+        let freelancerData = localStorage.getItem("freelancers");
+        if (freelancerData && freelancerData !== "undefined") {
+            renderFreelancersPage(1, JSON.parse(freelancerData), itemsPerPage);
+        } else {
+            fetch(apiUrlFreelancers)
+                .then(response => response.json())
+                .then(data => {
+                    localStorage.setItem("freelancers", JSON.stringify(data));
+                    renderFreelancersPage(1, data, itemsPerPage);
+                });
+        }
+console.log(userId);
+        // Cargar proyectos desde API
+        fetch( `https://apifreework.onrender.com/api/proyectos/${userId}`)
+            .then(response => response.json())
+            .then(projects => {
+
+                const projectSelect = document.getElementById("project-name");
+                projects.forEach(project => {
+                    const option = document.createElement("option");
+                    option.value = project.ProyectoID;
+                    console.log(project.ProyectoID);
+                    option.textContent = project.NombreProyecto; // Muestra el nombre del proyecto
+                    projectSelect.appendChild(option);
+                });
+            });
+
+        function renderFreelancersPage(page, data, itemsPerPage) {
+            const container = document.getElementById("freelancer-container");
+            container.innerHTML = "";
+            const start = (page - 1) * itemsPerPage;
+            const items = data.slice(start, start + itemsPerPage);
+
+            items.forEach(freelancer => {
+                const card = `<div class="border p-4 rounded-lg mb-4">
+                    <h3 class="text-lg font-bold">${freelancer.nombre}</h3>
+                    <p class="text-gray-600">Especialidad: ${freelancer.especialidad}</p>
+                    <p class="text-gray-600">Email: ${freelancer.email}</p>
+                    <button class="offer-btn mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg" data-id="${freelancer.id}">Ofertar contrato</button>
+                </div>`;
+                container.innerHTML += card;
+            });
+
+            // Add event listener for "Ofertar Contrato"
+            document.querySelectorAll(".offer-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    modal.classList.remove("hidden");
+                    form.dataset.freelancerId = btn.dataset.id;
+                });
+            });
+        }
+
+        // Close Modal
+        closeModal.addEventListener("click", () => {
+            modal.classList.add("hidden");
+        });
+
+        // Submit Contract
+        form.addEventListener("submit", e => {
+            e.preventDefault();
+            const freelancerId = form.dataset.freelancerId;
+            const userId = localStorage.getItem("userId"); // Empresa ID
+            const projectId = document.getElementById("project-name").value;
+            const contractData = {
+                FreelancerID: freelancerId,
+                EmpresaID: userId,
+                ProyectoID: projectId,
+                FechaInicio: document.getElementById("start-date").value,
+                FechaFin: document.getElementById("end-date").value,
+                Monto: parseFloat(document.getElementById("amount").value),
+                Descripcion: document.getElementById("description").value,
+                Estado: document.getElementById("status").value,
+            };
+            console.log(contractData);
+
+            // Send data to API
+            fetch("https://apifreework.onrender.com/api/contratos", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(contractData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert("Contrato enviado correctamente");
+                modal.classList.add("hidden");
+            })
+            .catch(err => console.error(err));
+        });
+    });
+</script>
+
+</body>
+</html>
