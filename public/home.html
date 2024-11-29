@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeWork</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- SweetAlert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="#" class="text-2xl font-semibold text-blue-600">FreeWork</a>
+            <div class="flex space-x-4">
+                <a href="home.html" class="text-gray-600 hover:text-blue-600 transition-colors">Inicio</a>
+                <a href="#" class="text-gray-600 hover:text-blue-600 transition-colors">Configuraciones</a>
+                <a href="#" class="text-gray-600 hover:text-blue-600 transition-colors">Aspirantes</a>
+                <a href="Message.html" class="text-gray-600 hover:text-blue-600 transition-colors">Mensajes</a>
+                <a href="newproyect.html" class="text-gray-600 hover:text-blue-600 transition-colors">Crear proyecto</a>
+            </div>
+            <div>
+                <button class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Mensaje de Bienvenida -->
+        <section class="mb-8">
+            <h1 id="welcome-message" class="text-4xl font-bold text-gray-800">Bienvenido, </h1>
+        </section>
+
+        <!-- Tarjetas de Información -->
+        <section id="project-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Las tarjetas de proyectos se cargarán aquí dinámicamente -->
+        </section>
+    </main>
+
+    <!-- Modal para editar proyecto -->
+    <div id="edit-modal" class="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg shadow-md w-96">
+            <h2 class="text-2xl font-semibold mb-4">Editar Proyecto</h2>
+            <form id="edit-form">
+                <input type="hidden" id="edit-project-id">
+                <div class="mb-4">
+                    <label for="edit-name" class="block text-gray-700">Nombre del Proyecto</label>
+                    <input type="text" id="edit-name" class="w-full p-2 border rounded-lg mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="edit-description" class="block text-gray-700">Descripción</label>
+                    <textarea id="edit-description" class="w-full p-2 border rounded-lg mt-2" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="edit-start-date" class="block text-gray-700">Fecha de Inicio</label>
+                    <input type="date" id="edit-start-date" class="w-full p-2 border rounded-lg mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="edit-end-date" class="block text-gray-700">Fecha de Fin</label>
+                    <input type="date" id="edit-end-date" class="w-full p-2 border rounded-lg mt-2" required>
+                </div>
+                <!-- Lista desplegable para el estado -->
+                <div class="mb-4">
+                    <label for="edit-status" class="block text-gray-700">Estado</label>
+                    <select id="edit-status" class="w-full p-2 border rounded-lg mt-2" required>
+                        <option value="Activo">Activo</option>
+                        <option value="Inactivo">Inactivo</option>
+                        <option value="Pendiente">Pendiente</option>
+                    </select>
+                </div>
+                <button type="submit" class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 mt-4">Guardar Cambios</button>
+                <button type="button" id="close-modal" class="px-4 py-2 text-white bg-gray-600 rounded-lg hover:bg-gray-700 mt-4 ml-2">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Recuperar el userId del localStorage
+        const userId = localStorage.getItem("userId");
+
+        // Verificar si el userId existe
+        if (!userId) {
+            alert("No se ha encontrado el ID de la empresa. Por favor, inicie sesión nuevamente.");
+            window.location.href = 'index.html';  // Redirigir a la página de login si no hay userId
+        } else {
+            // Actualizar el mensaje de bienvenida con el nombre de la empresa
+            const userName = localStorage.getItem("userName");
+            document.getElementById("welcome-message").textContent = `Bienvenido, ${userName}`;
+
+            // Función para obtener proyectos de la empresa
+            async function fetchProjects() {
+                try {
+                    const response = await fetch(`https://apifreework.onrender.com/api/proyectos/${userId}`);
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        const projectCardsContainer = document.getElementById("project-cards");
+                        projectCardsContainer.innerHTML = ""; // Limpiar las tarjetas anteriores
+
+                        if (data && data.length > 0) {
+                            data.forEach(proyecto => {
+                                const projectCard = document.createElement("div");
+                                projectCard.classList.add("bg-white", "p-6", "rounded-lg", "shadow-md", "hover:shadow-lg", "transition-shadow");
+
+                                projectCard.innerHTML = `
+                                    <h2 class="text-2xl font-semibold text-gray-800 mb-2">${proyecto.NombreProyecto}</h2>
+                                    <p class="text-gray-600 mb-4">${proyecto.Descripcion}</p>
+                                    <p class="text-sm text-gray-500"><strong>Fecha de Inicio:</strong> ${new Date(proyecto.FechaInicio).toLocaleDateString()}</p>
+                                    <p class="text-sm text-gray-500"><strong>Fecha de Fin:</strong> ${new Date(proyecto.FechaFin).toLocaleDateString()}</p>
+                                    <p class="text-sm text-gray-500"><strong>Estado:</strong> ${proyecto.Estado}</p>
+                                    <button class="edit-btn mt-4 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors" data-project='${JSON.stringify(proyecto)}'>editar Proyecto</button>
+                                    <button class="delete-btn mt-4 px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors" data-id="${proyecto.ProyectoID}">eliminar Proyecto</button>
+                                `;
+                                projectCardsContainer.appendChild(projectCard);
+                            });
+                        } else {
+                            projectCardsContainer.innerHTML = `<p class="text-gray-600">No tienes proyectos asignados.</p>`;
+                        }
+
+                        // Agregar eventos a los botones de editar y eliminar
+                        const editButtons = document.querySelectorAll('.edit-btn');
+                        editButtons.forEach(btn => {
+                            btn.addEventListener('click', openEditModal);
+                        });
+
+                        const deleteButtons = document.querySelectorAll('.delete-btn');
+                        deleteButtons.forEach(btn => {
+                            btn.addEventListener('click', confirmDelete);
+                        });
+                    } else {
+                        console.error("Error al obtener los proyectos:", data.error);
+                    }
+                } catch (error) {
+                    console.error("Error en la solicitud:", error);
+                }
+            }
+
+            // Llamar la función para cargar los proyectos
+            fetchProjects();
+
+            // Función para abrir el modal de edición
+            function openEditModal(event) {
+                const proyecto = JSON.parse(event.target.getAttribute('data-project'));
+
+                // Rellenar el modal con los datos del proyecto
+                document.getElementById("edit-project-id").value = proyecto.ProyectoID;
+                document.getElementById("edit-name").value = proyecto.NombreProyecto;
+                document.getElementById("edit-description").value = proyecto.Descripcion;
+                document.getElementById("edit-start-date").value = proyecto.FechaInicio.slice(0, 10);
+                document.getElementById("edit-end-date").value = proyecto.FechaFin.slice(0, 10);
+                document.getElementById("edit-status").value = proyecto.Estado;  // Establecer el valor del estado en el select
+
+                // Mostrar el modal
+                document.getElementById("edit-modal").classList.remove("hidden");
+            }
+
+            // Función para cerrar el modal
+            document.getElementById("close-modal").addEventListener("click", () => {
+                document.getElementById("edit-modal").classList.add("hidden");
+            });
+
+            // Función para editar un proyecto
+            document.getElementById("edit-form").addEventListener("submit", async (event) => {
+                event.preventDefault();
+
+                const proyectoID = document.getElementById("edit-project-id").value;
+                const nombre = document.getElementById("edit-name").value;
+                const descripcion = document.getElementById("edit-description").value;
+                const fechaInicio = document.getElementById("edit-start-date").value;
+                const fechaFin = document.getElementById("edit-end-date").value;
+                const estado = document.getElementById("edit-status").value;
+
+                try {
+                    const response = await fetch(`https://apifreework.onrender.com/api/proyectos/${proyectoID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            NombreProyecto: nombre,
+                            Descripcion: descripcion,
+                            FechaInicio: fechaInicio,
+                            FechaFin: fechaFin,
+                            Estado: estado,
+                        }),
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Proyecto actualizado',
+                            text: 'El proyecto se ha actualizado exitosamente.',
+                        });
+                        // Recargar los proyectos
+                        fetchProjects();
+                        document.getElementById("edit-modal").classList.add("hidden");
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error al actualizar',
+                            text: data.error || 'Hubo un problema al actualizar el proyecto.',
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error al editar el proyecto:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Hubo un problema al editar el proyecto.',
+                    });
+                }
+            });
+
+            // Función para confirmar la eliminación de un proyecto
+            async function confirmDelete(event) {
+                const proyectoID = event.target.getAttribute('data-id');
+                const confirmDelete = await Swal.fire({
+                    title: '¿Estás seguro?',
+                    text: 'Este proyecto se eliminará permanentemente.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar',
+                });
+
+                if (confirmDelete.isConfirmed) {
+                    deleteProject(proyectoID);
+                }
+            }
+
+            // Función para eliminar un proyecto
+            async function deleteProject(proyectoID) {
+                try {
+                    const response = await fetch(`https://apifreework.onrender.com/api/proyectos/${proyectoID}`, {
+                        method: 'DELETE',
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Proyecto eliminado',
+                            text: 'El proyecto ha sido eliminado.',
+                        });
+                        // Recargar los proyectos
+                        fetchProjects();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error al eliminar',
+                            text: data.error || 'Hubo un problema al eliminar el proyecto.',
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error al eliminar el proyecto:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Hubo un problema al eliminar el proyecto.',
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
